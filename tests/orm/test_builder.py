@@ -32,6 +32,19 @@ class BuilderTestCase(OratorTestCase):
         )
         self.assertEqual('baz', result)
 
+    def test_find_by_method(self):
+        builder = Builder(self.get_mock_query_builder())
+        builder.set_model(self.get_mock_model())
+        builder.get_query().where = mock.MagicMock()
+        builder.first = mock.MagicMock(return_value='baz')
+
+        result = builder.find_by('name', 'value', ['column'])
+
+        builder.get_query().where.assert_called_once_with(
+            'name', '=', 'value', 'and'
+        )
+        self.assertEqual('baz', result)
+
     def test_find_or_new_model_found(self):
         model = self.get_mock_model()
         model.find_or_new = mock.MagicMock(return_value='baz')
@@ -110,6 +123,30 @@ class BuilderTestCase(OratorTestCase):
         )
 
         builder.get.assert_called_once_with(
+            ['column']
+        )
+
+    def test_find_by_or_fail_raises_model_not_found_exception(self):
+        model = self.get_mock_model()
+
+        builder = Builder(self.get_mock_query_builder())
+        builder.set_model(model)
+        builder.get_query().where = mock.MagicMock()
+        builder.first = mock.MagicMock(return_value=None)
+
+        self.assertRaises(
+            ModelNotFound,
+            builder.find_by_or_fail,
+            'name',
+            'value',
+            ['column']
+        )
+
+        builder.get_query().where.assert_called_once_with(
+            'name', '=', 'value', 'and'
+        )
+
+        builder.first.assert_called_once_with(
             ['column']
         )
 
